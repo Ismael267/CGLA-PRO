@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
@@ -5,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { motion, spring } from "framer-motion";
 import User from "@/api/User";
-import { UserProps, RoleEnum, OfferProps } from "@/props";
+import { UserProps, OfferProps } from "@/props";
 import {
   Table,
   TableHeader,
@@ -15,23 +16,31 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination } from "@/components/ui/pagination";
 import { PageSizeSelector } from "@/components/ui/page-size-selector";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@iconify/react";
-import { MoreVertical, Crown, UserCheck, UserX, Filter, Package } from "lucide-react";
-import CreateForm from "@/components/user/CreateForm";
-import EditForm from "@/components/user/EditForm";
-import DeleteForm from "@/components/user/DeleteForm";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Toaster, toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -39,8 +48,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster, toast } from "sonner";
+import {
+  Plus,
+  Users,
+  UserCheck,
+  UserX,
+  Filter,
+  Search,
+  X,
+  Crown,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Clock,
+  DollarSign,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  Package,
+  ChevronDown,
+  Loader2,
+} from "lucide-react";
+import CreateForm from "@/components/user/CreateForm";
+import EditForm from "@/components/user/EditForm";
+import DeleteForm from "@/components/user/DeleteForm";
 
 // Animation variants pour les éléments du tableau
 const tableVariants = {
@@ -88,6 +122,8 @@ export default function MyUsersPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [userOffers, setUserOffers] = useState<Record<number, OfferProps[]>>({});
   const [loadingOffers, setLoadingOffers] = useState<Record<number, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // États pour la pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -115,17 +151,17 @@ export default function MyUsersPage() {
   const getRoleColor = useCallback((role: string | undefined) => {
     switch (role) {
       case "super_admin":
-        return "bg-red-500";
+        return "bg-red-100 text-red-800 border-red-200";
       case "system_manager":
-        return "bg-orange-500";
+        return "bg-orange-100 text-orange-800 border-orange-200";
       case "station_owner":
-        return "bg-blue-500";
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "employee_garage":
-        return "bg-green-500";
+        return "bg-green-100 text-green-800 border-green-200";
       case "client_garage":
-        return "bg-gray-500";
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
-        return "bg-gray-500";
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   }, []);
 
@@ -137,7 +173,7 @@ export default function MyUsersPage() {
       case "system_manager":
         return "Manager";
       case "station_owner":
-        return "Admin Garage";
+        return "Admin lavage";
       case "employee_garage":
         return "Employé";
       case "client_garage":
@@ -185,9 +221,9 @@ export default function MyUsersPage() {
     try {
       const response = await User.getUserOffers(userId);
       if (response.status === 200) {
-        setUserOffers(prev => ({ 
-          ...prev, 
-          [userId]: response.data.offers || [] 
+        setUserOffers(prev => ({
+          ...prev,
+          [userId]: response.data.offers || []
         }));
       }
     } catch (error) {
@@ -247,6 +283,7 @@ export default function MyUsersPage() {
   const handleUserCreated = useCallback((newUser: UserProps) => {
     setUsers((prevUsers) => [newUser, ...prevUsers]);
     setTableKey((prev) => prev + 1);
+    setIsAddModalOpen(false);
   }, []);
 
   // Fonction pour mettre à jour un utilisateur
@@ -330,17 +367,6 @@ export default function MyUsersPage() {
     [sortConfig]
   );
 
-  // Fonction pour obtenir l'icône de tri appropriée
-  const getSortIcon = useCallback(
-    (columnKey: keyof UserProps | "fullName") => {
-      if (sortConfig.key === columnKey) {
-        return sortConfig.direction === "asc" ? "bx:sort-up" : "bx:sort-down";
-      }
-      return "bx:sort";
-    },
-    [sortConfig]
-  );
-
   // Filtrage et tri des utilisateurs
   const filteredAndSortedUsers = useMemo(() => {
     let filtered = users?.filter((user) => {
@@ -349,7 +375,14 @@ export default function MyUsersPage() {
         filterStatus === "all" ||
         (filterStatus === "active" && user.is_active) ||
         (filterStatus === "inactive" && !user.is_active);
-      return roleMatch && statusMatch;
+      
+      // Filtre de recherche
+      const searchMatch = searchQuery === "" ||
+        `${user.firstname} ${user.lastname}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.username?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return roleMatch && statusMatch && searchMatch;
     });
 
     if (sortConfig.key && sortConfig.direction) {
@@ -363,7 +396,7 @@ export default function MyUsersPage() {
         } else if (sortConfig.key === "is_active") {
           valueA = a[sortConfig.key] ? 1 : 0;
           valueB = b[sortConfig.key] ? 1 : 0;
-        } else if (sortConfig.key in a) {
+        } else if (sortConfig.key && sortConfig.key in a) {
           valueA =
             a[sortConfig.key as keyof UserProps]?.toString().toLowerCase() ||
             "";
@@ -381,7 +414,7 @@ export default function MyUsersPage() {
     }
 
     return filtered;
-  }, [users, filterRole, filterStatus, sortConfig]);
+  }, [users, filterRole, filterStatus, searchQuery, sortConfig]);
 
   // Gérer la sélection/désélection de tous les utilisateurs
   const handleSelectAll = useCallback(() => {
@@ -425,7 +458,7 @@ export default function MyUsersPage() {
   // Réinitialiser la page quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterRole, filterStatus]);
+  }, [filterRole, filterStatus, searchQuery]);
 
   // Gérer le changement de taille de page
   const handlePageSizeChange = (newSize: number) => {
@@ -437,6 +470,9 @@ export default function MyUsersPage() {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
+
+  // Fonction pour effacer la recherche
+  const clearSearch = () => setSearchQuery("");
 
   if (isLoading) {
     return (
@@ -457,400 +493,365 @@ export default function MyUsersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="rounded-md min-h-fit bg-gray-50 p-4 md:p-6">
       <Toaster position="top-right" richColors />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="shadow-lg bg-white border-none transition-all hover:shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Utilisateurs
-            </CardTitle>
-            <Icon
-              icon="lucide:users"
-              className="h-5 w-5 text-muted-foreground"
-            />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.active} actifs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg bg-white border-none transition-all hover:shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Utilisateurs Actifs
-            </CardTitle>
-            <UserCheck className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.inactive} inactifs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg bg-white border-none transition-all hover:shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Administrateurs
-            </CardTitle>
-            <Crown className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.admins}</div>
-            <p className="text-xs text-muted-foreground">Rôles admin</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg bg-white border-none transition-all hover:shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactifs</CardTitle>
-            <UserX className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">À réactiver</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="w-full bg-white p-4 sm:p-6 rounded-xl shadow-md flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-              Gestion des utilisateurs
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600">
-              Gérez les utilisateurs et leurs permissions
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <CreateForm onUserCreated={handleUserCreated} />
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-[150px] sm:w-[180px] border-none bg-transparent">
-                <SelectValue placeholder="Tous les rôles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les rôles</SelectItem>
-                <SelectItem value="super_admin">Super Admin</SelectItem>
-                <SelectItem value="system_manager">Manager</SelectItem>
-                <SelectItem value="station_owner">Admin Garage</SelectItem>
-                <SelectItem value="employee_garage">Employé</SelectItem>
-                <SelectItem value="client_garage">Client</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[150px] sm:w-[180px] border-none bg-transparent">
-                <SelectValue placeholder="Tous les statuts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="active">Actifs</SelectItem>
-                <SelectItem value="inactive">Inactifs</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+      {/* Header */}
+      <header className="rounded-lg border-b border-gray-200 bg-white shadow-sm mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <Users className="h-6 w-6" />
             </div>
-          ) : error ? (
-            <div className="text-red-500 text-center py-4">{error}</div>
-          ) : (
-            <motion.div
-              key={tableKey}
-              initial="hidden"
-              animate="visible"
-              variants={tableVariants}
-            >
-              <Table className="min-w-full">
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectAll}
-                        onCheckedChange={handleSelectAll}
-                        aria-label="Sélectionner tous les utilisateurs"
-                      />
-                    </TableHead>
-                    <TableHead
-                      className="cursor-pointer"
-                      onClick={() => handleSort("fullName")}
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
+              <p className="text-sm text-gray-500">Centre de Lavage Auto Premium</p>
+            </div>
+          </div>
+         <CreateForm onUserCreated={handleUserCreated} />
+        </div>
+      </header>
+
+      <div className="space-y-6">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-blue-50 p-4">
+              <CardTitle className="text-sm font-medium text-blue-800">Total Utilisateurs</CardTitle>
+              <Users className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              <p className="text-xs text-gray-500 mt-1">Tous sites confondus</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-green-50 p-4">
+              <CardTitle className="text-sm font-medium text-green-800">Utilisateurs Actifs</CardTitle>
+              <UserCheck className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-gray-900">{stats.active}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}% de l'effectif
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-purple-50 p-4">
+              <CardTitle className="text-sm font-medium text-purple-800">Administrateurs</CardTitle>
+              <Crown className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-gray-900">{stats.admins}</div>
+              <p className="text-xs text-gray-500 mt-1">Rôles admin</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-amber-50 p-4">
+              <CardTitle className="text-sm font-medium text-amber-800">Utilisateurs Inactifs</CardTitle>
+              <UserX className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-gray-900">{stats.inactive}</div>
+              <p className="text-xs text-gray-500 mt-1">À réactiver</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Users List */}
+        <Card className="bg-white border border-gray-200 shadow-sm h-fit">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 p-4 sm:p-6">
+            <div className="flex flex-col gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-gray-900 text-lg">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  Liste des Utilisateurs
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Gérez vos utilisateurs et leurs permissions
+                </CardDescription>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Rechercher par nom, prénom, email ou username..."
+                    className="pl-9 pr-9 w-full border border-gray-200"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={clearSearch}
+                      className="absolute right-2.5 top-2.5 h-4 w-4 text-gray-500 hover:text-gray-700"
                     >
-                      <div className="flex items-center gap-2">
-                        <span>Profil</span>
-                        <Icon icon={getSortIcon("fullName")} />
-                      </div>
-                    </TableHead>
-                    <TableHead
-                      className="cursor-pointer"
-                      onClick={() => handleSort("email")}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="hidden sm:inline">Email</span>
-                        <Icon icon={getSortIcon("email")} />
-                      </div>
-                    </TableHead>
-                    <TableHead className="hidden sm:table-cell">Rôle</TableHead>
-                    <TableHead className="hidden sm:table-cell">
-                      Status
-                    </TableHead>
-                    <TableHead className="hidden md:table-cell">Offres</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedUsers?.length > 0 ? (
-                    paginatedUsers.map((userData, index) => (
-                      <AnimatedTableRow
-                        key={userData.id}
-                        variants={rowVariants}
-                        custom={index}
-                        className="border-t hover:bg-gray-50"
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedUsers.has(userData.id)}
-                            onCheckedChange={() =>
-                              handleSelectUser(userData.id)
-                            }
-                            aria-label={`Sélectionner ${userData.firstname} ${userData.lastname}`}
-                          />
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                              <AvatarImage
-                                src={userData.image || "/placeholder.svg"}
-                                alt="User Image"
-                              />
-                              <AvatarFallback>
-                                {userData.firstname?.charAt(0) || "?"}
-                                {userData.lastname?.charAt(0) || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium text-sm sm:text-base">
-                                {userData.firstname} {userData.lastname}
-                              </div>
-                              <div className="text-xs sm:text-sm text-muted-foreground">
-                                @{userData.username}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="text-gray-700 text-sm sm:text-base">
-                          {userData.email}
-                        </TableCell>
-
-                        <TableCell className="hidden sm:table-cell">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <div className="flex items-center">
-                                <div
-                                  className={`h-3 w-3 rounded-full mr-2 ${getRoleColor(
-                                    userData.role || ""
-                                  )}`}
-                                />
-                                <div
-                                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getRoleColor(
-                                    userData.role || ""
-                                  )} text-white`}
-                                >
-                                  {getRoleLabel(userData.role || "")}
-                                </div>
-                              </div>
-                            </PopoverTrigger>
-                          </Popover>
-                        </TableCell>
-
-                        <TableCell className="hidden sm:table-cell">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <div className="flex items-center">
-                                <div
-                                  className={`h-3 w-3 rounded-full mr-2 ${
-                                    userData.is_active
-                                      ? "bg-green-500"
-                                      : "bg-red-500"
-                                  }`}
-                                />
-                                <div
-                                  className={`relative inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                                    userData.is_active
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                  }`}
-                                >
-                                  {userData.is_active ? (
-                                    <span className="flex items-center">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1.5" />
-                                      Actif
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5" />
-                                      Inactif
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </PopoverTrigger>
-                            <PopoverContent align="start" className="w-32 p-2">
-                              <div className="space-y-1">
-                                <h4 className="font-medium px-2 py-1">
-                                  Statut
-                                </h4>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full justify-start text-green-600 hover:bg-green-50"
-                                  onClick={() =>
-                                    handleChangeStatus(userData.id, true)
-                                  }
-                                >
-                                  Activer
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full justify-start text-red-600 hover:bg-red-50"
-                                  onClick={() =>
-                                    handleChangeStatus(userData.id, false)
-                                  }
-                                >
-                                  Désactiver
-                                </Button>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-
-                        <TableCell className="hidden md:table-cell">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 px-3 text-xs"
-                                onClick={() => fetchUserOffers(userData.id)}
-                              >
-                                <Package className="h-4 w-4 mr-1" />
-                                Voir offres
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent align="start" className="w-80 max-h-96 overflow-y-auto">
-                              <div className="space-y-3">
-                                <h4 className="font-semibold text-lg">
-                                  Offres de {userData.firstname} {userData.lastname}
-                                </h4>
-                                {renderUserOffers(userData.id)}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 hover:bg-gray-100"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              align="end"
-                              className="w-40 p-2 space-y-1"
-                            >
-                              <EditForm
-                                getUser={userData}
-                                onUserUpdated={handleUserUpdated}
-                              />
-                              <DeleteForm
-                                userId={userData.id}
-                                onUserDeleted={handleUserDeleted}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-                      </AnimatedTableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center py-8 text-gray-500"
-                      >
-                        Aucun utilisateur trouvé
-                      </TableCell>
-                    </TableRow>
+                      <X className="h-4 w-4" />
+                    </button>
                   )}
-                </TableBody>
-              </Table>
-
-              {/* Footer de pagination */}
-              {filteredAndSortedUsers?.length > 0 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center space-x-4">
-                    <PageSizeSelector
-                      pageSize={pageSize}
-                      onPageSizeChange={handlePageSizeChange}
-                    />
-                    {selectedUsers.size > 0 && (
-                      <span className="text-sm text-gray-500">
-                        {selectedUsers.size} utilisateur(s) sélectionné(s)
-                      </span>
-                    )}
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                    <Select value={filterRole} onValueChange={setFilterRole}>
+                      <SelectTrigger className="w-full sm:w-[160px] border-none bg-transparent">
+                        <SelectValue placeholder="Tous les rôles" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les rôles</SelectItem>
+                        <SelectItem value="super_admin">Super Admin</SelectItem>
+                        <SelectItem value="system_manager">Manager</SelectItem>
+                        <SelectItem value="station_owner">Admin lavage</SelectItem>
+                        <SelectItem value="employee_garage">Employé</SelectItem>
+                        <SelectItem value="client_garage">Client</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2 items-center">
-                    {selectedUsers.size > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mb-2 sm:mb-0"
-                      >
-                        Actions groupées
-                      </Button>
-                    )}
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
-                    />
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="w-full sm:w-[160px] border-none bg-transparent">
+                        <SelectValue placeholder="Tous les statuts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les statuts</SelectItem>
+                        <SelectItem value="active">Actifs</SelectItem>
+                        <SelectItem value="inactive">Inactifs</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="space-y-4 p-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : error ? (
+                <div className="text-red-500 text-center py-8">{error}</div>
+              ) : (
+                <motion.div
+                  key={tableKey}
+                  initial="hidden"
+                  animate="visible"
+                  variants={tableVariants}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 hover:bg-gray-50">
+                        <TableHead className="font-semibold text-gray-700 p-3 w-12">
+                          <Checkbox
+                            checked={selectAll}
+                            onCheckedChange={handleSelectAll}
+                            aria-label="Sélectionner tous les utilisateurs"
+                          />
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-700 p-3">Profil</TableHead>
+                        <TableHead className="font-semibold text-gray-700 p-3">Email</TableHead>
+                        <TableHead className="font-semibold text-gray-700 p-3 hidden sm:table-cell">Rôle</TableHead>
+                        <TableHead className="font-semibold text-gray-700 p-3 hidden sm:table-cell">Statut</TableHead>
+                        <TableHead className="font-semibold text-gray-700 p-3 hidden md:table-cell">Offres</TableHead>
+                        <TableHead className="font-semibold text-gray-700 p-3 text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedUsers?.length > 0 ? (
+                        paginatedUsers.map((userData, index) => (
+                          <AnimatedTableRow
+                            key={userData.id}
+                            variants={rowVariants}
+                            custom={index}
+                            className="border-t hover:bg-gray-50/50 transition-colors"
+                          >
+                            <TableCell className="p-3">
+                              <Checkbox
+                                checked={selectedUsers.has(userData.id)}
+                                onCheckedChange={() =>
+                                  handleSelectUser(userData.id)
+                                }
+                                aria-label={`Sélectionner ${userData.firstname} ${userData.lastname}`}
+                              />
+                            </TableCell>
+
+                            <TableCell className="p-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                                  <AvatarImage
+                                    src={userData.image || "/placeholder.svg"}
+                                    alt="User Image"
+                                  />
+                                  <AvatarFallback className="text-xs">
+                                    {userData.firstname?.charAt(0) || "?"}
+                                    {userData.lastname?.charAt(0) || "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <div className="font-medium text-sm truncate">
+                                    {userData.firstname} {userData.lastname}
+                                  </div>
+                                  <div className="text-xs text-gray-500 truncate">
+                                    @{userData.username}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="text-gray-700 text-sm p-3 truncate">
+                              {userData.email}
+                            </TableCell>
+
+                            <TableCell className="p-3 hidden sm:table-cell">
+                              <Badge
+                                variant="outline"
+                                className={getRoleColor(userData.role || "")}
+                              >
+                                {getRoleLabel(userData.role || "")}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="p-3 hidden sm:table-cell">
+                              <Badge
+                                variant="outline"
+                                className={userData.is_active
+                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  : "bg-red-100 text-red-800 border-red-200"
+                                }
+                              >
+                                {userData.is_active ? "Actif" : "Inactif"}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="p-3 hidden md:table-cell">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
+                                    onClick={() => fetchUserOffers(userData.id)}
+                                  >
+                                    <Package className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                    <span className="hidden sm:inline">Voir offres</span>
+                                    <span className="sm:hidden">Offres</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-80 max-h-96 overflow-y-auto">
+                                  <DropdownMenuLabel>
+                                    Offres de {userData.firstname} {userData.lastname}
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <div className="p-2">
+                                    {renderUserOffers(userData.id)}
+                                  </div>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+
+                            <TableCell className="p-3">
+                              <div className="flex justify-end">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                      <span className="sr-only">Ouvrir le menu</span>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-[160px]">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem className="cursor-pointer text-gray-600">
+                                      <EditForm
+                                        getUser={userData}
+                                        onUserUpdated={handleUserUpdated}
+                                      />
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="cursor-pointer text-gray-600">
+                                      <DeleteForm
+                                        userId={userData.id}
+                                        onUserDeleted={handleUserDeleted}
+                                      />
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      className="cursor-pointer text-gray-600" 
+                                      onClick={() => handleChangeStatus(userData.id, !userData.is_active)}
+                                    >
+                                      {userData.is_active ? (
+                                        <>
+                                          <UserX className="mr-2 h-4 w-4" />
+                                          Désactiver
+                                        </>
+                                      ) : (
+                                        <>
+                                          <UserCheck className="mr-2 h-4 w-4" />
+                                          Activer
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </AnimatedTableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={7}
+                            className="text-center py-12 text-gray-500"
+                          >
+                            <div className="flex flex-col items-center justify-center">
+                              <Users className="h-12 w-12 text-gray-300 mb-4" />
+                              <p className="text-lg font-medium text-gray-500 mb-2">
+                                Aucun utilisateur trouvé
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                {searchQuery || filterRole !== "all" || filterStatus !== "all"
+                                  ? "Aucun utilisateur ne correspond aux critères de recherche"
+                                  : "Commencez par ajouter votre premier utilisateur"}
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+
+                  {/* Footer de pagination */}
+                  {filteredAndSortedUsers?.length > 0 && (
+                    <div className="mt-4 sm:mt-6 p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t">
+                      <div className="flex items-center space-x-2 sm:space-x-4">
+                        <PageSizeSelector
+                          pageSize={pageSize}
+                          onPageSizeChange={handlePageSizeChange}
+                        />
+                        {selectedUsers.size > 0 && (
+                          <span className="text-xs sm:text-sm text-gray-500">
+                            {selectedUsers.size} utilisateur(s) sélectionné(s)
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-end flex-1">
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={handlePageChange}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
               )}
-            </motion.div>
-          )}
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

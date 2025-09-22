@@ -1,7 +1,7 @@
 export interface UserService {
 
   login(credentials: Credentials): Promise<ReponseLogin | string>;
-  fetchMe(): Promise<Me | string>;
+  fetchMe(token: string): Promise<Me | string>;
 
 }
 
@@ -125,6 +125,11 @@ export interface BenefitProps {
     icon?: string;
     name: string;
     description?: string;
+}
+export enum RoleAdmin{
+    // super_admin = "Super Admin",
+    system_manager = "Manager" ,
+    admin_garage = "Propriétaire de lavage",
 }
 
 export enum RoleEnum {

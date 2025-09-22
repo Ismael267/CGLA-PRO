@@ -39,8 +39,8 @@ class UsersApiServiceImplementation implements UserService {
             }
         );
     }
-    public async fetchMe(): Promise<Me | string> {
-        const token = localStorage.getItem('token');
+    public async fetchMe(token: string): Promise<Me | string> {
+        // const token = localStorage.getItem('token');
         return await axios.get(
             `${process.env.NEXT_PUBLIC_BASE_URL}/auth/me`,
             {
@@ -52,6 +52,7 @@ class UsersApiServiceImplementation implements UserService {
             }
         );
     }
+
 }
 
 const Auth = new UsersApiServiceImplementation();

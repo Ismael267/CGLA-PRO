@@ -50,7 +50,7 @@ import { ManagerProps } from "@/props";
 import User from "@/api/User";
 import CreateManagerForm from "@/components/manager/create-manager-form";
 import ManagerDetailsModal from "@/components/manager/manager-details-modal";
-import EditManagerForm from "@/components/manager/edit-manager-form";
+// import EditManagerForm from "@/components/manager/edit-manager-form";
 import ManagerHistoryModal from "@/components/manager/manager-history-modal";
 import AssignQuotaModal from "@/components/manager/assing-quota-form";
 

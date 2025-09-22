@@ -30,9 +30,12 @@ const Settings = dynamic(() => import('lucide-react').then(mod => mod.Settings),
 const Tag = dynamic(() => import('lucide-react').then(mod => mod.Tag), { ssr: false }); // Pour Offres
 const Sparkles = dynamic(() => import('lucide-react').then(mod => mod.Sparkles), { ssr: false }); // Pour Lavages
 const CalendarCheck = dynamic(() => import('lucide-react').then(mod => mod.CalendarCheck), { ssr: false }); // Pour Réservations
-
+const packages = dynamic(() => import('lucide-react').then(mod => mod.Package), { ssr: false }); // Pour Gestion des stocks
+const DollarSign = dynamic(() => import('lucide-react').then(mod => mod.DollarSign), { ssr: false }); // Pour Comptabilité
 export default function SidebarMenuNav() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  console.log('User in SidebarMenuNav:', user);
   const pathname = usePathname();
 
   const menuItems = [];
@@ -52,20 +55,20 @@ export default function SidebarMenuNav() {
     menuItems.push(
       { name: "Tableau de bord", href: "/dashboard", icon: Home },
       { name: "Utilisateurs", href: "/dashboard/manager/users", icon: Users },
-      
-      // { name: "Paramètres", href: "/dashboard/settings", icon: Settings }
     );
   }
 
-  if (user?.role === "station_owner") {
-    menuItems.push(
-      { name: "Tableau de bord", href: "/dashboard", icon: Home },
-      { name: "Lavages", href: "/dashboard/admin/garages", icon: Sparkles },
-      { name: "Réservations", href: "/dashboard/reservations", icon: CalendarCheck },
-      { name: "Lavages", href: "/dashboard/manager/lavages", icon: Sparkles },
-      // { name: "Paramètres", href: "/dashboard/settings", icon: Settings }
-    );
-  }
+if (user?.role === "station_owner") {
+  menuItems.push(
+    { name: "Tableau de bord", href: "/dashboard", icon: Home },
+    // { name: "Réservations", href: "/dashboard/lavage_owner/reservations", icon: CalendarCheck },
+    { name: "Gestion des stocks", href: "/dashboard/lavage_owner/inventory", icon: packages },
+    { name: "Comptabilité", href: "/dashboard/lavage_owner/accounting", icon: DollarSign },
+    { name: "Mes lavages", href: "/dashboard/lavage_owner/lavages", icon: Sparkles },
+    { name: "Employés", href: "/dashboard/lavage_owner/employees", icon: Users },
+    { name: "Mon abonnement", href: "/dashboard/lavage_owner/subscription", icon: CreditCard }
+  );
+}
 
   if (user && ["employee_garage", "client_garage"].includes(user.role)) {
     menuItems.push(

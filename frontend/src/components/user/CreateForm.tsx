@@ -32,7 +32,7 @@ import {
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Plus, ChevronLeft, CheckCircle2, Loader2, X, Search } from "lucide-react";
-import { RoleEnum } from "@/props";
+import { RoleEnum, RoleAdmin } from "@/props";
 import User from "@/api/User";
 import Offers from "@/api/Offer";
 import { useOffers } from "@/context/OfferContext";
@@ -48,7 +48,7 @@ interface FormValues {
   username: string;
   email: string;
   password: string;
-  role?: RoleEnum;
+  role?: RoleAdmin;
 }
 
 export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser: any) => void}) {
@@ -69,6 +69,9 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
     },
     mode: "onBlur",
   });
+
+  // Vérifier si l'utilisateur actuel est un manager
+  const isManager = user?.role === "system_manager";
 
   // Filtrer les offres basé sur la recherche
   const filteredOffers = offers.filter(offer => 
@@ -91,6 +94,12 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
   };
 
   const handleSubmit = async () => {
+    // Vérification pour les managers : au moins une offre doit être sélectionnée
+    if (isManager && selectedOffers.length === 0) {
+      toast.error("Vous devez sélectionner au moins une offre pour créer un utilisateur");
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Récupérer les données du formulaire
@@ -254,7 +263,7 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Rôles</SelectLabel>
-                    {Object.entries(RoleEnum).map(([key, label]) => (
+                    {Object.entries(RoleAdmin).map(([key, label]) => (
                       <SelectItem key={key} value={key}>
                         {label}
                       </SelectItem>
@@ -266,6 +275,16 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
             </FormItem>
           )}
         />
+      )}
+
+      {/* Message d'information pour les managers */}
+      {isManager && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+          <p className="text-sm text-blue-800">
+            <strong>Information importante :</strong> En tant que manager, vous devez 
+            sélectionner au moins une offre pour cet utilisateur.
+          </p>
+        </div>
       )}
     </motion.div>
   );
@@ -296,6 +315,15 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
             {selectedOffers.length} sélectionné{selectedOffers.length !== 1 ? "s" : ""}
           </Badge>
         </div>
+
+        {/* Message d'obligation pour les managers */}
+        {isManager && selectedOffers.length === 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-sm text-amber-800">
+              ⚠️ <strong>Obligatoire :</strong> Vous devez sélectionner au moins une offre pour créer cet utilisateur.
+            </p>
+          </div>
+        )}
 
         {/* Barre de recherche */}
         <div className="relative">
@@ -442,7 +470,7 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant={"default"} className="w-full mb-4">
+        <Button variant={"default"} className="w-ful mb-4">
           <Plus className="mr-2" />
           Ajouter un utilisateur
         </Button>
@@ -481,7 +509,7 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
               
               {step === 1 ? (
                 <Button 
-                variant={"default"}
+                  variant={"default"}
                   type="button"
                   onClick={handleNextStep}
                   disabled={isLoading}
@@ -493,7 +521,7 @@ export default function CreateForm({ onUserCreated }: { onUserCreated?: (newUser
                 <Button 
                   type="button"
                   onClick={handleSubmit}
-                  disabled={isLoading}
+                  disabled={isLoading || (isManager && selectedOffers.length === 0)}
                   className="flex-1"
                 >
                   {isLoading ? (

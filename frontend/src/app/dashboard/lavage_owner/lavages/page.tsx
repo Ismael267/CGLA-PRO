@@ -231,18 +231,20 @@ export default function WashManagementDashboard() {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="name">Nom de l'entreprise <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="name" className="text-slate-700 font-medium">Nom de l'entreprise <span className="text-red-500">*</span></Label>
                     <Input
                       id="name"
                       value={newCompany.name}
+                      className="border-slate-200 hover:border-slate-300 focus:border-blue-600"
                       onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
                       placeholder="Ex: AutoLavage Express"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="referent">Référent <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="referent" className="text-slate-700 font-medium">Référent <span className="text-red-500">*</span></Label>
                     <Input
                       id="referent"
+                      className="border-slate-200 hover:border-slate-300 focus:border-blue-600"
                       value={newCompany.referent}
                       onChange={(e) => setNewCompany({ ...newCompany, referent: e.target.value })}
                       placeholder="Ex: Jean Dupont"
@@ -251,39 +253,43 @@ export default function WashManagementDashboard() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="email" className="text-slate-700 font-medium">Email <span className="text-red-500">*</span></Label>
                     
                     <Input
                       id="email"
                       type="email"
+                      className="border-slate-200 hover:border-slate-300 focus:border-blue-600"
                       value={newCompany.email}
                       onChange={(e) => setNewCompany({ ...newCompany, email: e.target.value })}
                       placeholder="contact@entreprise.fr"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="phone">Téléphone <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="phone" className="text-slate-700 font-medium">Téléphone <span className="text-red-500">*</span></Label>
                     <Input
                       id="phone"
                       value={newCompany.phone}
+                      className="border-slate-200 hover:border-slate-300 focus:border-blue-600"
                       onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })}
                       placeholder="01 23 45 67 89"
                     />
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="address">Adresse</Label>
+                  <Label htmlFor="address" className="text-slate-700 font-medium">Adresse</Label>
                   <Input
                     id="address"
                     value={newCompany.address}
+                    className="border-slate-200 hover:border-slate-300 focus:border-blue-600"
                     onChange={(e) => setNewCompany({ ...newCompany, address: e.target.value })}
                     placeholder="15 Rue de la Paix"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="city">Ville</Label>
+                  <Label htmlFor="city" className="text-slate-700 font-medium">Ville</Label>
                   <Input
                     id="city"
+                    className="border-slate-200 hover:border-slate-300 focus:border-blue-600"
                     value={newCompany.city}
                     onChange={(e) => setNewCompany({ ...newCompany, city: e.target.value })}
                     placeholder="Paris"
@@ -363,7 +369,7 @@ export default function WashManagementDashboard() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                   <Input
                     placeholder="Rechercher par nom, référent ou ville..."
-                    className="pl-9 pr-9 w-full"
+                    className="pl-9 pr-9 w-full border border-gray-200"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />

@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from 'axios';
-// import { UserProps } from '@/props';
+import axios from "axios";
+
+
 
 const getToken = () => {
     if (typeof window !== 'undefined') {
@@ -46,25 +46,21 @@ axiosInstance.interceptors.request.use(
 
 
 // eslint-disable-next-line prefer-const
-let Lavage: any = {};
+let Stocks: any = {};
 
-Lavage.getAlllavages = async () =>{
-    return await axiosInstance.get(`${process.env.NEXT_PUBLIC_BASE_URL}/car-wash`)
+Stocks.getAllStocks = async () =>{
+    return await axiosInstance.get(`${process.env.NEXT_PUBLIC_BASE_URL}/stock`)
 }
-Lavage.getLavageEmployees = async (lavageId: number) =>{
-    return await axiosInstance.get(`${process.env.NEXT_PUBLIC_BASE_URL}/car-wash/${lavageId}/employee`)
+Stocks.UpdateStock = async (id: number, data: any) =>{
+    return await axiosInstance.put(`${process.env.NEXT_PUBLIC_BASE_URL}/stock_managments/stocks/${id}`, data)
 }
-// Lavage.addEmployeeToLavage = async (lavageId: number, userId: number) =>{
-//     return await axiosInstance.post(`${process.env.NEXT_PUBLIC_BASE_URL}/car-wash/${lavageId}/add-employee`, { userId })
-// }
-Lavage.createLavage = async (data: any) =>{
-    return await axiosInstance.post(`${process.env.NEXT_PUBLIC_BASE_URL}/car-wash/create`, data)
+Stocks.addStock=async (data: any) =>{
+    return await axiosInstance.post(`${process.env.NEXT_PUBLIC_BASE_URL}/stock_managments/stocks`, data)
 }
-
-Lavage.getGaragesUser = async (userId: number) =>{
-    return await axiosInstance.get(`${process.env.NEXT_PUBLIC_BASE_URL}/car-wash/${userId}`)
+Stocks.deleteStock=async (id: number) =>{
+    return await axiosInstance.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/stock_managments/stocks/${id}`)
 }
 
 
 
-export default Lavage;
+export default Stocks;
