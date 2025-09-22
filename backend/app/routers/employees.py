@@ -21,6 +21,21 @@ router = APIRouter(
     tags=['Employees']
 )
 
+@router.get('/all', status_code=status.HTTP_200_OK)
+async def get_all_employees(db: DbDependency, current_user: Annotated[User, Depends(get_current_user)]):
+    """Récupère tous les employees d'un station_owner."""
+    if current_user['role'] != RoleUser.station_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vous n'avez pas les droits pour voir les employees."
+        )
+    
+    employees = db.query(Employee).filter(Employee.owner_id == current_user['id']).all()
+    return {
+        "message": "Employees récupérés avec succès",
+        "data": employees
+    }
+
 
 @router.post('/employee/create', status_code=status.HTTP_201_CREATED)
 async def create_employee(employee_data: EmployeeCreate, db: DbDependency, current_user: Annotated[User, Depends(get_current_user)]):
@@ -60,6 +75,7 @@ async def create_employee(employee_data: EmployeeCreate, db: DbDependency, curre
         lastname = employee_data.lastname if employee_data.lastname else None,
         phone = employee_data.phone if employee_data.phone else None,
         age = employee_data.age if employee_data.age else None,
+        salary = employee_data.salary if employee_data.salary else None,
         is_active=True,  # Actif par défaut
         role=role_to_assign  # Rôle par défaut
     )
@@ -70,14 +86,14 @@ async def create_employee(employee_data: EmployeeCreate, db: DbDependency, curre
         db.commit()
         db.refresh(new_employee) 
     except Exception as e:
-        logger.error(f"Erreur lors de la création de l'utilisateur : {str(e)}")
+        logger.error(f"Erreur lors de la création de l'employé : {str(e)}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur lors de la création de l'utilisateur"
+            detail="Erreur lors de la création de l'employé"
         )
     return {
-        "message": "User created successfully", 
+        "message": "Employé créé avec succès", 
         "user": new_employee
     }
 
@@ -104,6 +120,7 @@ async def edit_employee(employee_id: int, employee_data: EmployeeUpdate, db: DbD
     employee.lastname = employee_data.lastname if employee_data.lastname else employee.lastname
     employee.phone = employee_data.phone if employee_data.phone else employee.phone
     employee.age = employee_data.age if employee_data.age else employee.age
+    employee.salary = employee_data.salary if employee_data.salary else employee.salary
     employee.hashed_password = bcrypt_context.hash(employee_data.password) if employee_data.password else employee.hashed_password
     employee.role = employee_data.role if employee_data.role else employee.role
 

@@ -19,21 +19,52 @@ router = APIRouter(
     tags=['stock_managments']
 )
 
+@router.get("/all", status_code=status.HTTP_200_OK)
+async def get_all_stocks(db: DbDependency, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Récupérer tous les stocks de l'utilisateur connecté."""
+    stocks = db.query(StockManagment).filter(StockManagment.owner_id == current_user['id']).all()
+
+    stock_list = []
+    for stock in stocks:
+        station = db.query(CarWash).filter(CarWash.id == stock.station_id).first()
+        stock_info = {
+            "id": stock.id,
+            "name": stock.name,
+            "description": stock.description,
+            "unit_price": stock.unit_price,
+            "unit": stock.unit,
+            "quantity": stock.quantity,
+            "last_updated": stock.last_updated,
+            "station": {
+                "id": station.id,
+                "image": station.image,
+                "name": station.name,
+                "location": station.address
+            } if station else None
+        }
+        stock_list.append(stock_info)
+    return {
+        "message": "Stocks récupérés avec succès",
+        "stocks": stock_list
+    }
+
 @router.get("/{wash_id}/stocks")
-def get_stocks(wash_id: int, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
-    stocks = db.query(StockManagment).filter(StockManagment.station_id == wash_id).all()
+async def get_all_stocks_on_lavage(wash_id: int, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
+    stocks = db.query(StockManagment).filter(StockManagment.owner_id == current_user['id'], StockManagment.station_id == wash_id).all()
     return {
         "message": "Stocks récupérés avec succès",
         "stocks": stocks
     }
 
 @router.post("/{wash_id}/stocks/create", status_code=status.HTTP_201_CREATED)
-def create_stock(wash_id: int, stock_data: StockManagmentCreate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
+async def create_stock(wash_id: int, stock_data: StockManagmentCreate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
     """Créer un stock à un lavage."""
     new_stock = StockManagment(
         station_id=wash_id,
+        owner_id=current_user['id'],
         name=stock_data.name,
         description=stock_data.description,
+        category=stock_data.category,
         unit_price=stock_data.unit_price,
         unit=stock_data.unit,
         quantity=stock_data.quantity,
@@ -54,7 +85,7 @@ def create_stock(wash_id: int, stock_data: StockManagmentCreate, db: DbDependenc
     }
 
 @router.put("/stocks/{stock_id}", status_code=status.HTTP_200_OK)
-def update_stock(stock_id: int, stock_data: StockManagmentUpdate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
+async def update_stock(stock_id: int, stock_data: StockManagmentUpdate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
     """Mettre à jour un stock existant."""
     stock = db.query(StockManagment).filter(StockManagment.id == stock_id).first()
     
@@ -82,7 +113,7 @@ def update_stock(stock_id: int, stock_data: StockManagmentUpdate, db: DbDependen
     }
 
 @router.put("/stocks/{stock_id}/add", status_code=status.HTTP_200_OK)
-def add_stock(stock_id: int, stock_data: StockManagmentQuantityUpdate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
+async def add_stock(stock_id: int, stock_data: StockManagmentQuantityUpdate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
     """Ajouter sur un stock existant."""
     stock = db.query(StockManagment).filter(StockManagment.id == stock_id).first()
     
@@ -118,7 +149,7 @@ def add_stock(stock_id: int, stock_data: StockManagmentQuantityUpdate, db: DbDep
     }
 
 @router.put("/stocks/{stock_id}/remove", status_code=status.HTTP_200_OK)
-def remove_stock(stock_id: int, stock_data: StockManagmentQuantityUpdate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
+async def remove_stock(stock_id: int, stock_data: StockManagmentQuantityUpdate, db: DbDependency, current_user: Dict[str, Any] = Depends(check_stock_access)):
     """Retirer sur un stock existant."""
     stock = db.query(StockManagment).filter(StockManagment.id == stock_id).first()
     

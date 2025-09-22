@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from .manager_quota import ManagerQuota
     from .wash_record import WashRecord
     from .employee import Employee
+    from .stock_managment import StockManagment
+    from .stock_history import StockHistory
 
 
 class RoleUser(str, Enum):
@@ -113,3 +115,6 @@ class User(UserBase, table=True):
         back_populates="owner_station",
         sa_relationship_kwargs={"foreign_keys": "[WashRecord.wash_id]"}
     )
+
+    stocks: List["StockManagment"] = Relationship(back_populates="owner")
+    history: List["StockHistory"] = Relationship(back_populates="owner")
