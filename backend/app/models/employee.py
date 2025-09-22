@@ -28,6 +28,7 @@ class EmployeeBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True)
     phone: Optional[str] = Field(default=None)
     age: Optional[int] = Field(default=None)
+    salary: Optional[float] = Field(default=None, ge=0)
     role: RoleEmployee = Field(default=RoleEmployee.car_washer)
     is_verified: bool = Field(default=False)
     is_active: bool = Field(default=True)
@@ -41,6 +42,7 @@ class EmployeeCreate(BaseModel):
     lastname: Optional[str] = None
     phone: Optional[str] = None
     age: Optional[int] = None
+    salary: Optional[float] = None
     role: Optional[RoleEmployee] = None  # Champ optionnel pour spécifier le rôle
 
     @field_validator("password")
@@ -67,6 +69,7 @@ class EmployeeUpdate(BaseModel):
     lastname: Optional[str] = None
     phone: Optional[str] = None
     age: Optional[int] = None
+    salary: Optional[float] = None
     role: Optional[RoleEmployee] = None
     
     @field_validator("password")

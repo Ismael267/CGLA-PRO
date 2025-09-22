@@ -14,9 +14,24 @@ router = APIRouter(
     tags=['stock_histories']
 )
 
-@router.get('/{stock_id}', status_code=status.HTTP_200_OK)
+@router.get('/all', status_code=status.HTTP_200_OK)
 async def get_all_stock_histories(stock_id: int, db: DbDependency, current_user: Annotated[User, Depends(get_current_user)]):
     """Voir tous les historiques de stock de l'utilisateur connecté."""
+
+    if current_user['role'] != 'station_owner':
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vous n'êtes pas autorisé à voir tous les historiques de stock"
+        )
+    histories = db.query(StockHistory).filter(StockHistory.owner_id == current_user['id'], StockHistory.stock_id == stock_id).all()
+    return {
+        "message": "Historiques de stock récupérés avec succès",
+        "data": histories
+    }
+
+@router.get('/{stock_id}', status_code=status.HTTP_200_OK)
+async def get_all_stock_lavage_histories(stock_id: int, db: DbDependency, current_user: Annotated[User, Depends(get_current_user)]):
+    """Voir tous les historiques de stock d'un lavage."""
 
     if current_user['role'] != 'station_owner':
         raise HTTPException(
